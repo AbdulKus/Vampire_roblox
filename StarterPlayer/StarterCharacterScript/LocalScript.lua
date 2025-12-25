@@ -1609,7 +1609,7 @@ UserInputService.InputBegan:Connect(function(input, gpe)
                 if input.KeyCode == Enum.KeyCode.Space then queueDash() end
         end
 
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 and not UserInputService.TouchEnabled then
                 if state==STATE_TITLE then setState(STATE_PLAY) return end
                 if state==STATE_OVER then resetGame() setState(STATE_PLAY) return end
                 if state==STATE_PLAY then pl.fireHeld = true end
@@ -1686,7 +1686,7 @@ UserInputService.InputEnded:Connect(function(input, gpe)
                 if input.KeyCode == Enum.KeyCode.Right then moveKeys.Right = false end
         end
 
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 and not UserInputService.TouchEnabled then
                 pl.fireHeld = false
         end
         if input.UserInputType == Enum.UserInputType.Touch then
