@@ -338,18 +338,20 @@ local function mkGui()
 	local opt2, t2, sub2, ico2 = mkOpt(2)
 	local opt3, t3, sub3, ico3 = mkOpt(3)
 
-local reticle = Instance.new("Frame")
-reticle.BackgroundTransparency = 1
-reticle.Size = UDim2.fromOffset(0,0)
-reticle.AnchorPoint = Vector2.new(0.5,0.5)
-reticle.Position = UDim2.fromOffset(-9999, -9999)
-reticle.ZIndex = hudLayer.ZIndex
-reticle.Parent = hudLayer
+        local reticle = Instance.new("Frame")
+        reticle.BackgroundTransparency = 1
+        reticle.Size = UDim2.fromOffset(0,0)
+        reticle.AnchorPoint = Vector2.new(0.5,0.5)
+        reticle.Position = UDim2.fromOffset(-9999, -9999)
+        reticle.ZIndex = hudLayer.ZIndex
+        reticle.Parent = hudLayer
+
+        local TOUCH_ZINDEX = 20000
 
         local touchLayer = Instance.new("Frame")
         touchLayer.BackgroundTransparency = 1
         touchLayer.Size = UDim2.fromScale(1,1)
-        touchLayer.ZIndex = 9000
+        touchLayer.ZIndex = TOUCH_ZINDEX
         touchLayer.Parent = gui
 
         local function mkStick(xScale)
@@ -358,6 +360,7 @@ reticle.Parent = hudLayer
                 holder.AnchorPoint = Vector2.new(0.5, 0.5)
                 holder.Position = UDim2.fromScale(xScale, 0.82)
                 holder.Size = UDim2.fromOffset(120, 120)
+                holder.ZIndex = TOUCH_ZINDEX
                 holder.Parent = touchLayer
 
                 local base = Instance.new("Frame")
@@ -367,12 +370,14 @@ reticle.Parent = hudLayer
                 base.Size = UDim2.fromOffset(86, 86)
                 base.AnchorPoint = Vector2.new(0.5, 0.5)
                 base.Position = UDim2.fromScale(0.5, 0.5)
+                base.ZIndex = TOUCH_ZINDEX
                 base.Parent = holder
 
                 local outline = Instance.new("UIStroke")
                 outline.Thickness = 2
                 outline.Color = Color3.fromRGB(80, 110, 160)
                 outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+                outline.LineJoinMode = Enum.LineJoinMode.Round
                 outline.Parent = base
 
                 local handle = Instance.new("Frame")
@@ -381,6 +386,7 @@ reticle.Parent = hudLayer
                 handle.Size = UDim2.fromOffset(30, 30)
                 handle.AnchorPoint = Vector2.new(0.5, 0.5)
                 handle.Position = UDim2.fromScale(0.5, 0.5)
+                handle.ZIndex = TOUCH_ZINDEX + 1
                 handle.Parent = base
 
                 return {
@@ -410,13 +416,14 @@ reticle.Parent = hudLayer
                 dashButton.AnchorPoint = Vector2.new(0.5, 0.5)
                 dashButton.Size = UDim2.fromOffset(90, 44)
                 dashButton.Position = UDim2.fromScale(0.5, 0.78)
-                dashButton.ZIndex = touchLayer.ZIndex
+                dashButton.ZIndex = TOUCH_ZINDEX + 1
                 dashButton.Parent = touchLayer
 
                 local dbStroke = Instance.new("UIStroke")
                 dbStroke.Thickness = 2
                 dbStroke.Color = Color3.fromRGB(255, 120, 140)
                 dbStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+                dbStroke.LineJoinMode = Enum.LineJoinMode.Round
                 dbStroke.Parent = dashButton
         end
 
@@ -1528,7 +1535,15 @@ local function resetAimStick()
 end
 
 local function setAimFromPosition(pos)
-        if not aimTouchCenter then return end
+        if not aimTouchCenter then
+                if UI.rightStick and UI.rightStick.base then
+                        aimTouchCenter = UI.rightStick.base.AbsolutePosition + UI.rightStick.base.AbsoluteSize*0.5
+                        aimTouchRadius = UI.rightStick.radius
+                else
+                        return
+                end
+        end
+
         local delta = pos - aimTouchCenter
         local r = aimTouchRadius
         if delta.Magnitude > r then
@@ -1784,7 +1799,7 @@ RunService.Heartbeat:Connect(function(dt)
                 if m < 1e-6 then dx, dy = 1,0 m=1 end
                 dx/=m dy/=m
 
-                local dashDistance = 120
+                local dashDistance = 48
                 vx += dx * (dashDistance / math.max(dt, 1e-4))
                 vy += dy * (dashDistance / math.max(dt, 1e-4))
                 nx += dx * dashDistance
