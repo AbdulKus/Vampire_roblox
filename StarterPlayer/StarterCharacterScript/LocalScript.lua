@@ -510,6 +510,23 @@ local function setStickHandle(stick, offset)
         stick.handle.Position = UDim2.new(0.5, v.X, 0.5, v.Y)
 end
 
+local function pointInGui(gui, pos)
+        if not gui then return false end
+        local p = gui.AbsolutePosition
+        local s = gui.AbsoluteSize
+        return (pos.X >= p.X and pos.X <= p.X + s.X and pos.Y >= p.Y and pos.Y <= p.Y + s.Y)
+end
+
+local function setStickHandle(stick, offset)
+        if not stick then return end
+        local r = stick.radius
+        local v = offset
+        if v.Magnitude > r then
+                v = v.Unit * r
+        end
+        stick.handle.Position = UDim2.new(0.5, v.X, 0.5, v.Y)
+end
+
 local function mkRect(parent, x, y, w, h, col, alpha)
 	local r = Instance.new("Frame")
 	r.BorderSizePixel = 0
