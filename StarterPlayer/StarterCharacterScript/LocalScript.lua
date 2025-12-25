@@ -1062,12 +1062,13 @@ local pl = {
 	pickupR=18, dashCD=0, dashBaseCD=1.2,
 	invulnT=0, invuln=false,
 	auraR=0, auraDps=0, auraAcc=0,
-	critChance=0,
-	lastAimX=1, lastAimY=0,
-	fireHeld=false,
-	touchAim=false, touchId=nil, touchScreenX=0, touchScreenY=0,
-	char=nil, hum=nil, root=nil,
-	ui=nil, auraRing=nil, auraHost=nil, auraRadLast=-1
+        critChance=0,
+        lastAimX=1, lastAimY=0,
+        fireHeld=false,
+        touchAim=false, touchId=nil, touchScreenX=0, touchScreenY=0,
+        mouseAimBlocked=false,
+        char=nil, hum=nil, root=nil,
+        ui=nil, auraRing=nil, auraHost=nil, auraRadLast=-1
 }
 
 local enemies = {}
@@ -1238,11 +1239,11 @@ local function resetGame()
 	pl.pickupR=18 pl.dashCD=0 pl.dashBaseCD=1.2
 	pl.invulnT=0 pl.invuln=false
 	pl.auraR=0 pl.auraDps=0 pl.auraAcc=0
-	pl.critChance=0
-	pl.lastAimX=1 pl.lastAimY=0
-	pl.fireHeld=false
-	pl.touchAim=false pl.touchId=nil
-	pl.auraRadLast=-1
+        pl.critChance=0
+        pl.lastAimX=1 pl.lastAimY=0
+        pl.fireHeld=false
+        pl.touchAim=false pl.touchId=nil pl.mouseAimBlocked=false
+        pl.auraRadLast=-1
 
 	pl.ui, pl.auraRing, pl.auraHost = mkPlayerSprite(UI.playerLayer)
 
@@ -1429,22 +1430,32 @@ local function updateSprites(shakeOffX, shakeOffY)
 end
 
 local function updateReticle()
-	if state ~= STATE_PLAY then
-		UI.reticle.Position = UDim2.fromOffset(-9999, -9999)
-		return
-	end
-	if UserInputService.TouchEnabled then
-		if pl.touchAim then
-			local cx, cy = screenToCanvas(pl.touchScreenX, pl.touchScreenY)
-			UI.reticle.Position = UDim2.fromOffset(math.floor(cx+0.5), math.floor(cy+0.5))
-		else
-			UI.reticle.Position = UDim2.fromOffset(-9999, -9999)
-		end
-	else
-		local mp = UserInputService:GetMouseLocation()
-		local cx, cy = screenToCanvas(mp.X, mp.Y)
-		UI.reticle.Position = UDim2.fromOffset(math.floor(cx+0.5), math.floor(cy+0.5))
-	end
+        if state ~= STATE_PLAY then
+                UI.reticle.Position = UDim2.fromOffset(-9999, -9999)
+                return
+        end
+
+        UserInputService.MouseIconEnabled = not (pl.touchAim or pl.mouseAimBlocked or UserInputService.TouchEnabled)
+
+        if pl.touchAim then
+                local cx, cy = screenToCanvas(pl.touchScreenX, pl.touchScreenY)
+                UI.reticle.Position = UDim2.fromOffset(math.floor(cx+0.5), math.floor(cy+0.5))
+                return
+        end
+
+        if pl.mouseAimBlocked then
+                UI.reticle.Position = UDim2.fromOffset(-9999, -9999)
+                return
+        end
+
+        if UserInputService.TouchEnabled then
+                UI.reticle.Position = UDim2.fromOffset(-9999, -9999)
+                return
+        end
+
+        local mp = UserInputService:GetMouseLocation()
+        local cx, cy = screenToCanvas(mp.X, mp.Y)
+        UI.reticle.Position = UDim2.fromOffset(math.floor(cx+0.5), math.floor(cy+0.5))
 end
 
 clearChildren(UI.reticle)
@@ -1536,6 +1547,7 @@ local function setAimFromPosition(pos)
         pl.touchAim = true
         pl.touchScreenX = aimTouchCenter.X + delta.X
         pl.touchScreenY = aimTouchCenter.Y + delta.Y
+        pl.mouseAimBlocked = true
         pl.fireHeld = true
 end
 
@@ -1567,29 +1579,39 @@ end
 
 local function computeAimDir()
         local px, py = getPlayerXY()
-        if UserInputService.TouchEnabled then
-                        if pl.touchAim then
-                                local cx, cy = screenToCanvas(pl.touchScreenX, pl.touchScreenY)
-                                local wx, wy = canvasToWorld(cx, cy, camX, camY)
-                                local dx, dy = wx - px, wy - py
-                                local m = math.sqrt(dx*dx+dy*dy)
-                                if m > 1e-6 then return dx/m, dy/m end
-                        end
-                        return 0,0
-        else
-                local mp = UserInputService:GetMouseLocation()
-                local cx, cy = screenToCanvas(mp.X, mp.Y)
+
+        -- When a touch aim is active, always prefer it over any mouse position so the
+        -- mobile stick fully controls the shooting direction.
+        if pl.touchAim then
+                local cx, cy = screenToCanvas(pl.touchScreenX, pl.touchScreenY)
                 local wx, wy = canvasToWorld(cx, cy, camX, camY)
                 local dx, dy = wx - px, wy - py
                 local m = math.sqrt(dx*dx+dy*dy)
                 if m > 1e-6 then return dx/m, dy/m end
                 return 0,0
         end
+
+        if pl.mouseAimBlocked then
+                return 0,0
+        end
+
+        if UserInputService.TouchEnabled then
+                return 0,0
+        end
+
+        local mp = UserInputService:GetMouseLocation()
+        local cx, cy = screenToCanvas(mp.X, mp.Y)
+        local wx, wy = canvasToWorld(cx, cy, camX, camY)
+        local dx, dy = wx - px, wy - py
+        local m = math.sqrt(dx*dx+dy*dy)
+        if m > 1e-6 then return dx/m, dy/m end
+        return 0,0
 end
 
 local function resetTouchAim()
         pl.touchAim = false
         pl.touchId = nil
+        pl.mouseAimBlocked = false
         pl.fireHeld = false
         resetAimStick()
 end
@@ -1609,7 +1631,7 @@ UserInputService.InputBegan:Connect(function(input, gpe)
                 if input.KeyCode == Enum.KeyCode.Space then queueDash() end
         end
 
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 and not UserInputService.TouchEnabled and not pl.mouseAimBlocked then
                 if state==STATE_TITLE then setState(STATE_PLAY) return end
                 if state==STATE_OVER then resetGame() setState(STATE_PLAY) return end
                 if state==STATE_PLAY then pl.fireHeld = true end
@@ -1686,7 +1708,7 @@ UserInputService.InputEnded:Connect(function(input, gpe)
                 if input.KeyCode == Enum.KeyCode.Right then moveKeys.Right = false end
         end
 
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 and not UserInputService.TouchEnabled then
                 pl.fireHeld = false
         end
         if input.UserInputType == Enum.UserInputType.Touch then
