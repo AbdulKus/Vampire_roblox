@@ -8,6 +8,9 @@ local GuiService = game:GetService("GuiService")
 local lp = Players.LocalPlayer
 local cam = workspace.CurrentCamera
 
+local SHOW_VERSION = true
+local GAME_VERSION = "0.1.0"
+
 local BASE_W = 220
 local BASE_H = 130
 local WORLD_W = 2200
@@ -70,11 +73,27 @@ local function mkGui()
 	backdrop.Parent = gui
 	backdrop.ZIndex = 0
 
-	local root = Instance.new("Frame")
-	root.BackgroundTransparency = 1
-	root.Size = UDim2.fromScale(1,1)
-	root.Parent = gui
-	root.ZIndex = 1
+        local root = Instance.new("Frame")
+        root.BackgroundTransparency = 1
+        root.Size = UDim2.fromScale(1,1)
+        root.Parent = gui
+        root.ZIndex = 1
+
+        local versionLabel = Instance.new("TextLabel")
+        versionLabel.BackgroundTransparency = 1
+        versionLabel.AnchorPoint = Vector2.new(0.5, 0)
+        versionLabel.Position = UDim2.fromScale(0.5, 0)
+        versionLabel.Size = UDim2.fromOffset(180, 14)
+        versionLabel.Font = FONT_UI
+        versionLabel.TextSize = 10
+        versionLabel.TextColor3 = Color3.fromRGB(220,220,220)
+        versionLabel.TextStrokeTransparency = 0.8
+        versionLabel.TextXAlignment = Enum.TextXAlignment.Center
+        versionLabel.TextYAlignment = Enum.TextYAlignment.Top
+        versionLabel.Text = "VERSION " .. GAME_VERSION
+        versionLabel.Visible = SHOW_VERSION
+        versionLabel.ZIndex = 40
+        versionLabel.Parent = root
 
 	local canvasHolder = Instance.new("Frame")
 	canvasHolder.BackgroundTransparency = 1
@@ -318,13 +337,86 @@ local function mkGui()
 	local opt2, t2, sub2, ico2 = mkOpt(2)
 	local opt3, t3, sub3, ico3 = mkOpt(3)
 
-	local reticle = Instance.new("Frame")
-	reticle.BackgroundTransparency = 1
-	reticle.Size = UDim2.fromOffset(0,0)
-	reticle.AnchorPoint = Vector2.new(0.5,0.5)
-	reticle.Position = UDim2.fromOffset(-9999, -9999)
-	reticle.ZIndex = hudLayer.ZIndex
-	reticle.Parent = hudLayer
+local reticle = Instance.new("Frame")
+reticle.BackgroundTransparency = 1
+reticle.Size = UDim2.fromOffset(0,0)
+reticle.AnchorPoint = Vector2.new(0.5,0.5)
+reticle.Position = UDim2.fromOffset(-9999, -9999)
+reticle.ZIndex = hudLayer.ZIndex
+reticle.Parent = hudLayer
+
+local touchLayer = Instance.new("Frame")
+        touchLayer.BackgroundTransparency = 1
+        touchLayer.Size = UDim2.fromScale(1,1)
+        touchLayer.ZIndex = 500
+        touchLayer.Parent = gui
+
+        local function mkStick(xScale)
+                local holder = Instance.new("Frame")
+                holder.BackgroundTransparency = 1
+                holder.AnchorPoint = Vector2.new(0.5, 0.5)
+                holder.Position = UDim2.fromScale(xScale, 0.82)
+                holder.Size = UDim2.fromOffset(120, 120)
+                holder.Parent = touchLayer
+
+                local base = Instance.new("Frame")
+                base.BackgroundColor3 = Color3.fromRGB(25, 26, 34)
+                base.BackgroundTransparency = 0.3
+                base.BorderSizePixel = 0
+                base.Size = UDim2.fromOffset(86, 86)
+                base.AnchorPoint = Vector2.new(0.5, 0.5)
+                base.Position = UDim2.fromScale(0.5, 0.5)
+                base.Parent = holder
+
+                local outline = Instance.new("UIStroke")
+                outline.Thickness = 2
+                outline.Color = Color3.fromRGB(80, 110, 160)
+                outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+                outline.Parent = base
+
+                local handle = Instance.new("Frame")
+                handle.BackgroundColor3 = Color3.fromRGB(90, 220, 255)
+                handle.BorderSizePixel = 0
+                handle.Size = UDim2.fromOffset(30, 30)
+                handle.AnchorPoint = Vector2.new(0.5, 0.5)
+                handle.Position = UDim2.fromScale(0.5, 0.5)
+                handle.Parent = base
+
+                return {
+                        holder = holder,
+                        base = base,
+                        handle = handle,
+                        radius = 34,
+                }
+        end
+
+        local leftStick, rightStick = nil, nil
+        local dashButton = nil
+
+        if UserInputService.TouchEnabled then
+                leftStick = mkStick(0.18)
+                rightStick = mkStick(0.82)
+
+                dashButton = Instance.new("TextButton")
+                dashButton.AutoButtonColor = false
+                dashButton.Text = "DASH"
+                dashButton.Font = FONT_UI
+                dashButton.TextSize = 16
+                dashButton.TextColor3 = Color3.fromRGB(240, 240, 240)
+                dashButton.BackgroundColor3 = Color3.fromRGB(40, 44, 58)
+                dashButton.BorderSizePixel = 0
+                dashButton.AnchorPoint = Vector2.new(0.5, 0.5)
+                dashButton.Size = UDim2.fromOffset(90, 44)
+                dashButton.Position = UDim2.fromScale(0.5, 0.78)
+                dashButton.ZIndex = touchLayer.ZIndex
+                dashButton.Parent = touchLayer
+
+                local dbStroke = Instance.new("UIStroke")
+                dbStroke.Thickness = 2
+                dbStroke.Color = Color3.fromRGB(255, 120, 140)
+                dbStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+                dbStroke.Parent = dashButton
+        end
 
 	local vhs = Instance.new("Frame")
 	vhs.BackgroundTransparency = 1
@@ -355,18 +447,20 @@ local function mkGui()
 	topBand.Parent = vhs
 	topBand.ZIndex = 10002
 
-	return {
-		gui=gui, root=root, backdrop=backdrop,
-		canvasHolder=canvasHolder, canvas=canvas, scale=scale,
-		worldLayer=worldLayer, marksLayer=marksLayer, xpLayer=xpLayer, pickLayer=pickLayer, bulletLayer=bulletLayer, enemyLayer=enemyLayer, playerLayer=playerLayer, partLayer=partLayer, hudLayer=hudLayer,
-		scoreLbl=scoreLbl, lvlLbl=lvlLbl, xpFill=xpFill, xpTxt=xpTxt, hearts=hearts,
-		title=title, over=over, lvl=lvl, titleText=titleText, overText=overText,
-		opt1=opt1, opt2=opt2, opt3=opt3,
-		t1=t1, t2=t2, t3=t3, sub1=sub1, sub2=sub2, sub3=sub3,
-		ico1=ico1, ico2=ico2, ico3=ico3,
-		reticle=reticle,
-		vhs=vhs, scan=scan, noise=noise, topBand=topBand
-	}
+return {
+gui=gui, root=root, backdrop=backdrop,
+canvasHolder=canvasHolder, canvas=canvas, scale=scale,
+worldLayer=worldLayer, marksLayer=marksLayer, xpLayer=xpLayer, pickLayer=pickLayer, bulletLayer=bulletLayer, enemyLayer=enemyLayer, playerLayer=playerLayer, partLayer=partLayer, hudLayer=hudLayer,
+scoreLbl=scoreLbl, lvlLbl=lvlLbl, xpFill=xpFill, xpTxt=xpTxt, hearts=hearts,
+title=title, over=over, lvl=lvl, titleText=titleText, overText=overText,
+opt1=opt1, opt2=opt2, opt3=opt3,
+t1=t1, t2=t2, t3=t3, sub1=sub1, sub2=sub2, sub3=sub3,
+ico1=ico1, ico2=ico2, ico3=ico3,
+reticle=reticle,
+touchLayer=touchLayer, leftStick=leftStick, rightStick=rightStick, dashButton=dashButton,
+versionLabel=versionLabel,
+vhs=vhs, scan=scan, noise=noise, topBand=topBand
+}
 end
 
 local UI = mkGui()
@@ -396,6 +490,23 @@ local function updateScale()
 end
 updateScale()
 cam:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale)
+
+local function pointInGui(gui, pos)
+        if not gui then return false end
+        local p = gui.AbsolutePosition
+        local s = gui.AbsoluteSize
+        return (pos.X >= p.X and pos.X <= p.X + s.X and pos.Y >= p.Y and pos.Y <= p.Y + s.Y)
+end
+
+local function setStickHandle(stick, offset)
+        if not stick then return end
+        local r = stick.radius
+        local v = offset
+        if v.Magnitude > r then
+                v = v.Unit * r
+        end
+        stick.handle.Position = UDim2.new(0.5, v.X, 0.5, v.Y)
+end
 
 local function mkRect(parent, x, y, w, h, col, alpha)
 	local r = Instance.new("Frame")
@@ -830,7 +941,7 @@ local function screenToCanvas(sx, sy)
 end
 
 local upgrades = {
-	{ id=0, name="DMG +1", desc="BULLETS HIT HARDER" },
+        { id=0, name="DMG +1", desc="BULLETS HIT HARDER" },
 	{ id=1, name="FIRE RATE", desc="SHOOT FASTER" },
 	{ id=2, name="PICKUP RADIUS", desc="COLLECT FARTHER" },
 	{ id=3, name="MULTI SHOT", desc="MORE BULLETS" },
@@ -843,6 +954,15 @@ local upgrades = {
 	{ id=10, name="BULLET SPEED", desc="FASTER PROJECTILES" },
 	{ id=11, name="CRIT", desc="RARE BIG HITS" }
 }
+
+local moveKeys = {
+        W=false, A=false, S=false, D=false,
+        Up=false, Down=false, Left=false, Right=false
+}
+local gamepadMove = Vector2.new(0,0)
+local moveTouch = { id=nil, origin=nil, offset=Vector2.new(0,0), radius=34 }
+local aimTouchCenter = nil
+local aimTouchRadius = (UI.rightStick and UI.rightStick.radius) or 34
 
 local state = STATE_TITLE
 local score = 0
@@ -1329,86 +1449,197 @@ if lp.Character then onCharacter(lp.Character) end
 
 local dashQueued = false
 ContextActionService:BindAction("NW_DASH", function(_, inputState)
-	if inputState == Enum.UserInputState.Begin then
-		if state==STATE_PLAY then dashQueued=true end
-	end
-	return Enum.ContextActionResult.Sink
+        if inputState == Enum.UserInputState.Begin then
+                if state==STATE_PLAY then dashQueued=true end
+        end
+        return Enum.ContextActionResult.Sink
 end, false, Enum.KeyCode.Space, Enum.KeyCode.ButtonA)
 
+local function queueDash()
+        if state==STATE_PLAY then dashQueued = true end
+end
+
+if UI.dashButton then
+        UI.dashButton.Activated:Connect(queueDash)
+end
+
+local function resetMoveTouch()
+        moveTouch.id = nil
+        moveTouch.origin = nil
+        moveTouch.offset = Vector2.new(0,0)
+        setStickHandle(UI.leftStick, Vector2.new(0,0))
+end
+
+local function updateMoveTouch(pos)
+        if not moveTouch.origin then return end
+        local delta = pos - moveTouch.origin
+        moveTouch.offset = delta
+        moveTouch.radius = UI.leftStick and UI.leftStick.radius or 34
+        setStickHandle(UI.leftStick, delta)
+end
+
+local function resetAimStick()
+        aimTouchCenter = nil
+        setStickHandle(UI.rightStick, Vector2.new(0,0))
+end
+
+local function setAimFromPosition(pos)
+        if not aimTouchCenter then return end
+        local delta = pos - aimTouchCenter
+        local r = aimTouchRadius
+        if delta.Magnitude > r then
+                delta = delta.Unit * r
+        end
+        setStickHandle(UI.rightStick, delta)
+        pl.touchAim = true
+        pl.touchScreenX = aimTouchCenter.X + delta.X
+        pl.touchScreenY = aimTouchCenter.Y + delta.Y
+        pl.fireHeld = true
+end
+
+local function getMoveVector()
+        if moveTouch.id then
+                local r = math.max(1, moveTouch.radius)
+                local vx = moveTouch.offset.X / r
+                local vy = moveTouch.offset.Y / r
+                local m = math.sqrt(vx*vx + vy*vy)
+                if m > 1 then vx/=m vy/=m end
+                return vx, vy
+        end
+
+        local vx = 0
+        if moveKeys.D or moveKeys.Right then vx += 1 end
+        if moveKeys.A or moveKeys.Left then vx -= 1 end
+
+        local vy = 0
+        if moveKeys.S or moveKeys.Down then vy += 1 end
+        if moveKeys.W or moveKeys.Up then vy -= 1 end
+
+        vx += gamepadMove.X
+        vy += gamepadMove.Y
+
+        local m = math.sqrt(vx*vx + vy*vy)
+        if m > 1 then vx/=m vy/=m end
+        return vx, vy
+end
+
 local function computeAimDir()
-	local px, py = getPlayerXY()
-	if UserInputService.TouchEnabled then
-		if pl.touchAim then
-			local cx, cy = screenToCanvas(pl.touchScreenX, pl.touchScreenY)
-			local wx, wy = canvasToWorld(cx, cy, camX, camY)
-			local dx, dy = wx - px, wy - py
-			local m = math.sqrt(dx*dx+dy*dy)
-			if m > 1e-6 then return dx/m, dy/m end
-		end
-		return 0,0
-	else
-		local mp = UserInputService:GetMouseLocation()
-		local cx, cy = screenToCanvas(mp.X, mp.Y)
-		local wx, wy = canvasToWorld(cx, cy, camX, camY)
-		local dx, dy = wx - px, wy - py
-		local m = math.sqrt(dx*dx+dy*dy)
-		if m > 1e-6 then return dx/m, dy/m end
-		return 0,0
-	end
+        local px, py = getPlayerXY()
+        if UserInputService.TouchEnabled then
+                        if pl.touchAim then
+                                local cx, cy = screenToCanvas(pl.touchScreenX, pl.touchScreenY)
+                                local wx, wy = canvasToWorld(cx, cy, camX, camY)
+                                local dx, dy = wx - px, wy - py
+                                local m = math.sqrt(dx*dx+dy*dy)
+                                if m > 1e-6 then return dx/m, dy/m end
+                        end
+                        return 0,0
+        else
+                local mp = UserInputService:GetMouseLocation()
+                local cx, cy = screenToCanvas(mp.X, mp.Y)
+                local wx, wy = canvasToWorld(cx, cy, camX, camY)
+                local dx, dy = wx - px, wy - py
+                local m = math.sqrt(dx*dx+dy*dy)
+                if m > 1e-6 then return dx/m, dy/m end
+                return 0,0
+        end
 end
 
 local function resetTouchAim()
-	pl.touchAim = false
-	pl.touchId = nil
-	pl.fireHeld = false
+        pl.touchAim = false
+        pl.touchId = nil
+        pl.fireHeld = false
+        resetAimStick()
 end
 
 UserInputService.InputBegan:Connect(function(input, gpe)
-	if gpe then return end
+        if gpe then return end
 
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		if state==STATE_TITLE then setState(STATE_PLAY) return end
-		if state==STATE_OVER then resetGame() setState(STATE_PLAY) return end
-		if state==STATE_PLAY then pl.fireHeld = true end
-	end
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+                if input.KeyCode == Enum.KeyCode.W then moveKeys.W = true end
+                if input.KeyCode == Enum.KeyCode.A then moveKeys.A = true end
+                if input.KeyCode == Enum.KeyCode.S then moveKeys.S = true end
+                if input.KeyCode == Enum.KeyCode.D then moveKeys.D = true end
+                if input.KeyCode == Enum.KeyCode.Up then moveKeys.Up = true end
+                if input.KeyCode == Enum.KeyCode.Down then moveKeys.Down = true end
+                if input.KeyCode == Enum.KeyCode.Left then moveKeys.Left = true end
+                if input.KeyCode == Enum.KeyCode.Right then moveKeys.Right = true end
+                if input.KeyCode == Enum.KeyCode.Space then queueDash() end
+        end
 
-	if input.UserInputType == Enum.UserInputType.Touch then
-		local vp = cam.ViewportSize
-		local x, y = normScreenXY(input.Position.X, input.Position.Y)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                if state==STATE_TITLE then setState(STATE_PLAY) return end
+                if state==STATE_OVER then resetGame() setState(STATE_PLAY) return end
+                if state==STATE_PLAY then pl.fireHeld = true end
+        end
 
-		if state==STATE_TITLE then setState(STATE_PLAY) return end
-		if state==STATE_OVER then resetGame() setState(STATE_PLAY) return end
+        if input.UserInputType == Enum.UserInputType.Touch then
+                local pos = Vector2.new(input.Position.X, input.Position.Y)
 
-		if state==STATE_PLAY then
-			if x > vp.X*0.52 then
-				pl.touchAim = true
-				pl.touchId = input
-				pl.touchScreenX = input.Position.X
-				pl.touchScreenY = input.Position.Y
-				pl.fireHeld = true
-			end
-		end
-	end
+                if state==STATE_TITLE then setState(STATE_PLAY) return end
+                if state==STATE_OVER then resetGame() setState(STATE_PLAY) return end
+
+                if UI.dashButton and pointInGui(UI.dashButton, pos) then queueDash() return end
+
+                if state==STATE_PLAY then
+                        if UI.leftStick and pointInGui(UI.leftStick.holder, pos) then
+                                moveTouch.id = input
+                                moveTouch.origin = UI.leftStick.base.AbsolutePosition + UI.leftStick.base.AbsoluteSize*0.5
+                                moveTouch.radius = UI.leftStick.radius
+                                updateMoveTouch(pos)
+                                return
+                        end
+
+                        if UI.rightStick and pointInGui(UI.rightStick.holder, pos) then
+                                pl.touchAim = true
+                                pl.touchId = input
+                                aimTouchCenter = UI.rightStick.base.AbsolutePosition + UI.rightStick.base.AbsoluteSize*0.5
+                                aimTouchRadius = UI.rightStick.radius
+                                setAimFromPosition(pos)
+                                return
+                        end
+                end
+        end
 end)
 
 UserInputService.InputChanged:Connect(function(input, gpe)
-	if input.UserInputType == Enum.UserInputType.Touch then
-		if pl.touchAim and pl.touchId == input then
-			pl.touchScreenX = input.Position.X
-			pl.touchScreenY = input.Position.Y
-		end
-	end
+        if input.UserInputType == Enum.UserInputType.Touch then
+                if moveTouch.id == input then
+                        updateMoveTouch(Vector2.new(input.Position.X, input.Position.Y))
+                end
+                if pl.touchAim and pl.touchId == input then
+                        setAimFromPosition(Vector2.new(input.Position.X, input.Position.Y))
+                end
+        elseif input.UserInputType == Enum.UserInputType.Gamepad1 then
+                if input.KeyCode == Enum.KeyCode.Thumbstick1 then
+                        gamepadMove = Vector2.new(input.Position.X, -input.Position.Y)
+                end
+        end
 end)
 
 UserInputService.InputEnded:Connect(function(input, gpe)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		pl.fireHeld = false
-	end
-	if input.UserInputType == Enum.UserInputType.Touch then
-		if pl.touchId == input then
-			resetTouchAim()
-		end
-	end
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+                if input.KeyCode == Enum.KeyCode.W then moveKeys.W = false end
+                if input.KeyCode == Enum.KeyCode.A then moveKeys.A = false end
+                if input.KeyCode == Enum.KeyCode.S then moveKeys.S = false end
+                if input.KeyCode == Enum.KeyCode.D then moveKeys.D = false end
+                if input.KeyCode == Enum.KeyCode.Up then moveKeys.Up = false end
+                if input.KeyCode == Enum.KeyCode.Down then moveKeys.Down = false end
+                if input.KeyCode == Enum.KeyCode.Left then moveKeys.Left = false end
+                if input.KeyCode == Enum.KeyCode.Right then moveKeys.Right = false end
+        end
+
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                pl.fireHeld = false
+        end
+        if input.UserInputType == Enum.UserInputType.Touch then
+                if moveTouch.id == input then resetMoveTouch() end
+                if pl.touchId == input then resetTouchAim() end
+        elseif input.UserInputType == Enum.UserInputType.Gamepad1 then
+                if input.KeyCode == Enum.KeyCode.Thumbstick1 then
+                        gamepadMove = Vector2.new(0,0)
+                end
+        end
 end)
 
 resetGame()
@@ -1477,11 +1708,11 @@ RunService.Heartbeat:Connect(function(dt)
 	pl.invulnT = math.max(0, pl.invulnT - dt)
 	pl.invuln = (pl.invulnT > 0)
 
-	local mv = pl.hum.MoveDirection
-	local mx, my = mv.X, mv.Z
-	local sp = 46
-	local nx = px + mx*sp*dt
-	local ny = py + my*sp*dt
+        local mx, my = getMoveVector()
+        pl.hum:Move(Vector3.new(mx, 0, my), true)
+        local sp = 46
+        local nx = px + mx*sp*dt
+        local ny = py + my*sp*dt
 
 	local vx = (nx - px) / math.max(1e-6, dt)
 	local vy = (ny - py) / math.max(1e-6, dt)
