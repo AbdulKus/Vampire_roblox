@@ -8,6 +8,9 @@ local GuiService = game:GetService("GuiService")
 local lp = Players.LocalPlayer
 local cam = workspace.CurrentCamera
 
+local SHOW_VERSION = true
+local GAME_VERSION = "0.1.0"
+
 local BASE_W = 220
 local BASE_H = 130
 local WORLD_W = 2200
@@ -70,11 +73,27 @@ local function mkGui()
 	backdrop.Parent = gui
 	backdrop.ZIndex = 0
 
-	local root = Instance.new("Frame")
-	root.BackgroundTransparency = 1
-	root.Size = UDim2.fromScale(1,1)
-	root.Parent = gui
-	root.ZIndex = 1
+        local root = Instance.new("Frame")
+        root.BackgroundTransparency = 1
+        root.Size = UDim2.fromScale(1,1)
+        root.Parent = gui
+        root.ZIndex = 1
+
+        local versionLabel = Instance.new("TextLabel")
+        versionLabel.BackgroundTransparency = 1
+        versionLabel.AnchorPoint = Vector2.new(0.5, 0)
+        versionLabel.Position = UDim2.fromScale(0.5, 0)
+        versionLabel.Size = UDim2.fromOffset(180, 14)
+        versionLabel.Font = FONT_UI
+        versionLabel.TextSize = 10
+        versionLabel.TextColor3 = Color3.fromRGB(220,220,220)
+        versionLabel.TextStrokeTransparency = 0.8
+        versionLabel.TextXAlignment = Enum.TextXAlignment.Center
+        versionLabel.TextYAlignment = Enum.TextYAlignment.Top
+        versionLabel.Text = "VERSION " .. GAME_VERSION
+        versionLabel.Visible = SHOW_VERSION
+        versionLabel.ZIndex = 40
+        versionLabel.Parent = root
 
 	local canvasHolder = Instance.new("Frame")
 	canvasHolder.BackgroundTransparency = 1
@@ -439,6 +458,7 @@ t1=t1, t2=t2, t3=t3, sub1=sub1, sub2=sub2, sub3=sub3,
 ico1=ico1, ico2=ico2, ico3=ico3,
 reticle=reticle,
 touchLayer=touchLayer, leftStick=leftStick, rightStick=rightStick, dashButton=dashButton,
+versionLabel=versionLabel,
 vhs=vhs, scan=scan, noise=noise, topBand=topBand
 }
 end
