@@ -493,6 +493,25 @@ end
 updateScale()
 cam:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale)
 
+-- Helper to test whether a 2D point lies within a GuiObject's bounds.
+local function isPointInGui(gui, pos)
+        if not gui then return false end
+        local p = gui.AbsolutePosition
+        local s = gui.AbsoluteSize
+        return (pos.X >= p.X and pos.X <= p.X + s.X and pos.Y >= p.Y and pos.Y <= p.Y + s.Y)
+end
+
+-- Clamp and apply the virtual stick handle offset.
+local function applyStickHandle(stick, offset)
+        if not stick then return end
+        local r = stick.radius
+        local v = offset
+        if v.Magnitude > r then
+                v = v.Unit * r
+        end
+        stick.handle.Position = UDim2.new(0.5, v.X, 0.5, v.Y)
+end
+
 local function pointInGui(gui, pos)
         if not gui then return false end
         local p = gui.AbsolutePosition
@@ -1486,7 +1505,7 @@ local function resetMoveTouch()
         moveTouch.id = nil
         moveTouch.origin = nil
         moveTouch.offset = Vector2.new(0,0)
-        setStickHandle(UI.leftStick, Vector2.new(0,0))
+        applyStickHandle(UI.leftStick, Vector2.new(0,0))
         if UI.leftStick and UI.leftStick.defaultPos then
                 UI.leftStick.holder.Position = UI.leftStick.defaultPos
         end
@@ -1497,12 +1516,12 @@ local function updateMoveTouch(pos)
         local delta = pos - moveTouch.origin
         moveTouch.offset = delta
         moveTouch.radius = UI.leftStick and UI.leftStick.radius or 34
-        setStickHandle(UI.leftStick, delta)
+        applyStickHandle(UI.leftStick, delta)
 end
 
 local function resetAimStick()
         aimTouchCenter = nil
-        setStickHandle(UI.rightStick, Vector2.new(0,0))
+        applyStickHandle(UI.rightStick, Vector2.new(0,0))
         if UI.rightStick and UI.rightStick.defaultPos then
                 UI.rightStick.holder.Position = UI.rightStick.defaultPos
         end
@@ -1515,7 +1534,7 @@ local function setAimFromPosition(pos)
         if delta.Magnitude > r then
                 delta = delta.Unit * r
         end
-        setStickHandle(UI.rightStick, delta)
+        applyStickHandle(UI.rightStick, delta)
         pl.touchAim = true
         pl.touchScreenX = aimTouchCenter.X + delta.X
         pl.touchScreenY = aimTouchCenter.Y + delta.Y
@@ -1605,14 +1624,14 @@ UserInputService.InputBegan:Connect(function(input, gpe)
                 if state==STATE_TITLE then setState(STATE_PLAY) return end
                 if state==STATE_OVER then resetGame() setState(STATE_PLAY) return end
 
-                if UI.dashButton and pointInGui(UI.dashButton, pos) then queueDash() return end
+                if UI.dashButton and isPointInGui(UI.dashButton, pos) then queueDash() return end
 
                 if state==STATE_PLAY then
-                        local leftRegion = UI.leftStick and (pointInGui(UI.leftStick.holder, pos) or pos.X <= vp.X*0.35)
+                        local leftRegion = UI.leftStick and (isPointInGui(UI.leftStick.holder, pos) or pos.X <= vp.X*0.35)
                         if leftRegion then
                                 moveTouch.id = input
                                 local origin = UI.leftStick.base.AbsolutePosition + UI.leftStick.base.AbsoluteSize*0.5
-                                if not pointInGui(UI.leftStick.holder, pos) then
+                                if not isPointInGui(UI.leftStick.holder, pos) then
                                         origin = pos
                                         UI.leftStick.holder.Position = UDim2.fromOffset(origin.X, origin.Y)
                                 end
@@ -1622,12 +1641,12 @@ UserInputService.InputBegan:Connect(function(input, gpe)
                                 return
                         end
 
-                        local rightRegion = UI.rightStick and (pointInGui(UI.rightStick.holder, pos) or pos.X >= vp.X*0.65)
+                        local rightRegion = UI.rightStick and (isPointInGui(UI.rightStick.holder, pos) or pos.X >= vp.X*0.65)
                         if rightRegion then
                                 pl.touchAim = true
                                 pl.touchId = input
                                 local center = UI.rightStick.base.AbsolutePosition + UI.rightStick.base.AbsoluteSize*0.5
-                                if not pointInGui(UI.rightStick.holder, pos) then
+                                if not isPointInGui(UI.rightStick.holder, pos) then
                                         local cx = clamp(pos.X, UI.rightStick.radius + 10, vp.X - UI.rightStick.radius - 10)
                                         local cy = clamp(pos.Y, UI.rightStick.radius + 10, vp.Y - UI.rightStick.radius - 10)
                                         center = Vector2.new(cx, cy)
