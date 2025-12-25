@@ -59,12 +59,13 @@ end
 setupPostFX()
 
 local function mkGui()
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "NeonWild2D"
-	gui.IgnoreGuiInset = true
-	gui.ResetOnSpawn = false
-	gui.DisplayOrder = 999999
-	gui.Parent = lp:WaitForChild("PlayerGui")
+        local gui = Instance.new("ScreenGui")
+        gui.Name = "NeonWild2D"
+        gui.IgnoreGuiInset = true
+        gui.ResetOnSpawn = false
+        gui.DisplayOrder = 999999
+        gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+        gui.Parent = lp:WaitForChild("PlayerGui")
 
 	local backdrop = Instance.new("Frame")
 	backdrop.BackgroundColor3 = Color3.fromRGB(0,0,0)
@@ -345,10 +346,10 @@ reticle.Position = UDim2.fromOffset(-9999, -9999)
 reticle.ZIndex = hudLayer.ZIndex
 reticle.Parent = hudLayer
 
-local touchLayer = Instance.new("Frame")
+        local touchLayer = Instance.new("Frame")
         touchLayer.BackgroundTransparency = 1
         touchLayer.Size = UDim2.fromScale(1,1)
-        touchLayer.ZIndex = 500
+        touchLayer.ZIndex = 9000
         touchLayer.Parent = gui
 
         local function mkStick(xScale)
@@ -387,6 +388,7 @@ local touchLayer = Instance.new("Frame")
                         base = base,
                         handle = handle,
                         radius = 34,
+                        defaultPos = holder.Position,
                 }
         end
 
@@ -490,6 +492,23 @@ local function updateScale()
 end
 updateScale()
 cam:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale)
+
+local function pointInGui(gui, pos)
+        if not gui then return false end
+        local p = gui.AbsolutePosition
+        local s = gui.AbsoluteSize
+        return (pos.X >= p.X and pos.X <= p.X + s.X and pos.Y >= p.Y and pos.Y <= p.Y + s.Y)
+end
+
+local function setStickHandle(stick, offset)
+        if not stick then return end
+        local r = stick.radius
+        local v = offset
+        if v.Magnitude > r then
+                v = v.Unit * r
+        end
+        stick.handle.Position = UDim2.new(0.5, v.X, 0.5, v.Y)
+end
 
 local function pointInGui(gui, pos)
         if not gui then return false end
@@ -1468,6 +1487,9 @@ local function resetMoveTouch()
         moveTouch.origin = nil
         moveTouch.offset = Vector2.new(0,0)
         setStickHandle(UI.leftStick, Vector2.new(0,0))
+        if UI.leftStick and UI.leftStick.defaultPos then
+                UI.leftStick.holder.Position = UI.leftStick.defaultPos
+        end
 end
 
 local function updateMoveTouch(pos)
@@ -1481,6 +1503,9 @@ end
 local function resetAimStick()
         aimTouchCenter = nil
         setStickHandle(UI.rightStick, Vector2.new(0,0))
+        if UI.rightStick and UI.rightStick.defaultPos then
+                UI.rightStick.holder.Position = UI.rightStick.defaultPos
+        end
 end
 
 local function setAimFromPosition(pos)
@@ -1575,6 +1600,7 @@ UserInputService.InputBegan:Connect(function(input, gpe)
 
         if input.UserInputType == Enum.UserInputType.Touch then
                 local pos = Vector2.new(input.Position.X, input.Position.Y)
+                local vp = cam.ViewportSize
 
                 if state==STATE_TITLE then setState(STATE_PLAY) return end
                 if state==STATE_OVER then resetGame() setState(STATE_PLAY) return end
@@ -1582,18 +1608,32 @@ UserInputService.InputBegan:Connect(function(input, gpe)
                 if UI.dashButton and pointInGui(UI.dashButton, pos) then queueDash() return end
 
                 if state==STATE_PLAY then
-                        if UI.leftStick and pointInGui(UI.leftStick.holder, pos) then
+                        local leftRegion = UI.leftStick and (pointInGui(UI.leftStick.holder, pos) or pos.X <= vp.X*0.35)
+                        if leftRegion then
                                 moveTouch.id = input
-                                moveTouch.origin = UI.leftStick.base.AbsolutePosition + UI.leftStick.base.AbsoluteSize*0.5
+                                local origin = UI.leftStick.base.AbsolutePosition + UI.leftStick.base.AbsoluteSize*0.5
+                                if not pointInGui(UI.leftStick.holder, pos) then
+                                        origin = pos
+                                        UI.leftStick.holder.Position = UDim2.fromOffset(origin.X, origin.Y)
+                                end
+                                moveTouch.origin = origin
                                 moveTouch.radius = UI.leftStick.radius
                                 updateMoveTouch(pos)
                                 return
                         end
 
-                        if UI.rightStick and pointInGui(UI.rightStick.holder, pos) then
+                        local rightRegion = UI.rightStick and (pointInGui(UI.rightStick.holder, pos) or pos.X >= vp.X*0.65)
+                        if rightRegion then
                                 pl.touchAim = true
                                 pl.touchId = input
-                                aimTouchCenter = UI.rightStick.base.AbsolutePosition + UI.rightStick.base.AbsoluteSize*0.5
+                                local center = UI.rightStick.base.AbsolutePosition + UI.rightStick.base.AbsoluteSize*0.5
+                                if not pointInGui(UI.rightStick.holder, pos) then
+                                        local cx = clamp(pos.X, UI.rightStick.radius + 10, vp.X - UI.rightStick.radius - 10)
+                                        local cy = clamp(pos.Y, UI.rightStick.radius + 10, vp.Y - UI.rightStick.radius - 10)
+                                        center = Vector2.new(cx, cy)
+                                        UI.rightStick.holder.Position = UDim2.fromOffset(center.X, center.Y)
+                                end
+                                aimTouchCenter = center
                                 aimTouchRadius = UI.rightStick.radius
                                 setAimFromPosition(pos)
                                 return
@@ -1717,22 +1757,27 @@ RunService.Heartbeat:Connect(function(dt)
 	local vx = (nx - px) / math.max(1e-6, dt)
 	local vy = (ny - py) / math.max(1e-6, dt)
 
-	if dashQueued and pl.dashCD <= 0 then
-		dashQueued = false
-		local dx, dy = mx, my
-		local m = math.sqrt(dx*dx+dy*dy)
-		if m < 0.15 then dx, dy = pl.lastAimX, pl.lastAimY m = math.sqrt(dx*dx+dy*dy) end
-		if m < 1e-6 then dx, dy = 1,0 m=1 end
-		dx/=m dy/=m
-		vx += dx*170
-		vy += dy*170
-		pl.dashCD = pl.dashBaseCD
-		pl.invulnT = 0.22
-		popFX(px, py, 10)
-		shake(0.08, 2.2)
-	else
-		dashQueued = false
-	end
+        if dashQueued and pl.dashCD <= 0 then
+                dashQueued = false
+                local dx, dy = mx, my
+                local m = math.sqrt(dx*dx+dy*dy)
+                if m < 0.15 then dx, dy = pl.lastAimX, pl.lastAimY m = math.sqrt(dx*dx+dy*dy) end
+                if m < 1e-6 then dx, dy = 1,0 m=1 end
+                dx/=m dy/=m
+
+                local dashDistance = 120
+                vx += dx * (dashDistance / math.max(dt, 1e-4))
+                vy += dy * (dashDistance / math.max(dt, 1e-4))
+                nx += dx * dashDistance
+                ny += dy * dashDistance
+
+                pl.dashCD = pl.dashBaseCD
+                pl.invulnT = 0.22
+                popFX(px, py, 10)
+                shake(0.08, 2.2)
+        else
+                dashQueued = false
+        end
 
 	nx, ny, vx, vy = resolveObstacles(nx, ny, 5.0, vx, vy)
 	setPlayerXY(nx, ny)
