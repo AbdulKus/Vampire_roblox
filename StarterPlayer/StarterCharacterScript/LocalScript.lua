@@ -1429,22 +1429,25 @@ local function updateSprites(shakeOffX, shakeOffY)
 end
 
 local function updateReticle()
-	if state ~= STATE_PLAY then
-		UI.reticle.Position = UDim2.fromOffset(-9999, -9999)
-		return
-	end
-	if UserInputService.TouchEnabled then
-		if pl.touchAim then
-			local cx, cy = screenToCanvas(pl.touchScreenX, pl.touchScreenY)
-			UI.reticle.Position = UDim2.fromOffset(math.floor(cx+0.5), math.floor(cy+0.5))
-		else
-			UI.reticle.Position = UDim2.fromOffset(-9999, -9999)
-		end
-	else
-		local mp = UserInputService:GetMouseLocation()
-		local cx, cy = screenToCanvas(mp.X, mp.Y)
-		UI.reticle.Position = UDim2.fromOffset(math.floor(cx+0.5), math.floor(cy+0.5))
-	end
+        if state ~= STATE_PLAY then
+                UI.reticle.Position = UDim2.fromOffset(-9999, -9999)
+                return
+        end
+
+        if pl.touchAim then
+                local cx, cy = screenToCanvas(pl.touchScreenX, pl.touchScreenY)
+                UI.reticle.Position = UDim2.fromOffset(math.floor(cx+0.5), math.floor(cy+0.5))
+                return
+        end
+
+        if UserInputService.TouchEnabled then
+                UI.reticle.Position = UDim2.fromOffset(-9999, -9999)
+                return
+        end
+
+        local mp = UserInputService:GetMouseLocation()
+        local cx, cy = screenToCanvas(mp.X, mp.Y)
+        UI.reticle.Position = UDim2.fromOffset(math.floor(cx+0.5), math.floor(cy+0.5))
 end
 
 clearChildren(UI.reticle)
@@ -1567,24 +1570,29 @@ end
 
 local function computeAimDir()
         local px, py = getPlayerXY()
-        if UserInputService.TouchEnabled then
-                        if pl.touchAim then
-                                local cx, cy = screenToCanvas(pl.touchScreenX, pl.touchScreenY)
-                                local wx, wy = canvasToWorld(cx, cy, camX, camY)
-                                local dx, dy = wx - px, wy - py
-                                local m = math.sqrt(dx*dx+dy*dy)
-                                if m > 1e-6 then return dx/m, dy/m end
-                        end
-                        return 0,0
-        else
-                local mp = UserInputService:GetMouseLocation()
-                local cx, cy = screenToCanvas(mp.X, mp.Y)
+
+        -- When a touch aim is active, always prefer it over any mouse position so the
+        -- mobile stick fully controls the shooting direction.
+        if pl.touchAim then
+                local cx, cy = screenToCanvas(pl.touchScreenX, pl.touchScreenY)
                 local wx, wy = canvasToWorld(cx, cy, camX, camY)
                 local dx, dy = wx - px, wy - py
                 local m = math.sqrt(dx*dx+dy*dy)
                 if m > 1e-6 then return dx/m, dy/m end
                 return 0,0
         end
+
+        if UserInputService.TouchEnabled then
+                return 0,0
+        end
+
+        local mp = UserInputService:GetMouseLocation()
+        local cx, cy = screenToCanvas(mp.X, mp.Y)
+        local wx, wy = canvasToWorld(cx, cy, camX, camY)
+        local dx, dy = wx - px, wy - py
+        local m = math.sqrt(dx*dx+dy*dy)
+        if m > 1e-6 then return dx/m, dy/m end
+        return 0,0
 end
 
 local function resetTouchAim()
